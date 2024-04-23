@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   Reference Architecture to host a 2 or 3 tier Architecture on AWS - Creates New
   VPC
