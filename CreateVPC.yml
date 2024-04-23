@@ -94,6 +94,7 @@ Parameters:
   ProjectName:
     Description: Enter the Project name
     Type: String
+    Default: test
   Environment:
     Description: Enter the Environment name
     Type: String
