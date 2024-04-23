@@ -1,0 +1,5 @@
+
+
+template-file-path: CreateVPC.yml
+parameters:
+tags: {}
