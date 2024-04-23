@@ -1,4 +1,4 @@
 template-file-path: CreateVPC.yml
 parameters:
-  AvailabilityZones: ap-south-1a,ap-south-1b
+  AvailabilityZones: ap-south-1a,ap-south-1b,ap-south-1c
 tags: {}
