@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CF Template to create TaskDefinition for the Application
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label:
+          default: All Parameters Specific To Application Container Configurations.
+        Parameters:
+          - EnvironmentName
+          - ProjectName
+          - ApplicationContainerName
+          - ApplicationImage
+          - ApplicationImageMemory
+          - ApplicationImageCPU
+          - ApplicationContainerPort
+      - Label:
+          default: Parameters Specific To TaskDefinition.
+        Parameters:
+          - TaskDefinitionName
+      - Label:
+          default: All Parameters Related to Tagging.
+        Parameters:
+          - AdditionalTagsKey
+          - AdditionalTagsValue
+    ParameterLabels:
+      EnvironmentName:
+        default: >-
+          Please give a name to your Environment. (Like uat, development,
+          production, staging, etc.)
+      ProjectName:
+        default: Please Give a Name to your Project.
+      ApplicationContainerName:
+        default: Application Container Name.
+      ApplicationImage:
+        default: Application Image.
+      ApplicationImageMemory:
+        default: Application Image Memory.
+      ApplicationContainerPort:
+        default: Application Container Port.
+      ApplicationImageCPU:
+        default: Applicationv Image CPU.
+      TaskDefinitionName:
+        default: Task Definition Name.
+      AdditionalTagsKey:
+        default: Additional tags key.
+      AdditionalTagsValue:
+        default: Additional tags value.
+Parameters:
+  EnvironmentName:
+    Description: Select the environment.
+    Type: String
+    AllowedValues:
+      - Dev
+      - Uat
+      - Prod
+      - Staging
+  ProjectName:
+    Description: The Name of your Project for which the template is going to be deployed.
+    Type: String
+    Default: PROJECT1
+  TaskDefinitionName:
+    Type: String
+    Description: The Name of the Task Definition Used to Launch the Application Container.
+    Default: SampleApp
+  ApplicationContainerName:
+    Type: String
+    Description: Name of the application container
+    Default: apache
+  ApplicationImage:
+    Type: String
+    Description: >-
+      Enter the URI of the Application Docker Image(If the Application image is
+      in ECR, enter the ARN of the ECR)
+    Default: 'registry/repository:tag'
+  ApplicationImageMemory:
+    Type: Number
+    Description: Memory required to run the Application in MB Eg-1024 for 1GB
+  ApplicationContainerPort:
+    Type: Number
+    Description: Provide the container port of the Application
+  ApplicationImageCPU:
+    Type: Number
+    Description: CPU required to run the Application in MB Eg-1024 for 1GB
+  AdditionalTagsKey:
+    Type: String
+    Default: map-migrated
+  AdditionalTagsValue:
+    Type: String
+    Default: mig12345
+Resources:
+  LogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Sub '/ecs/${TaskDefinitionName}'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub '/${ProjectName}/${EnvironmentName}/ecs/${TaskDefinitionName}'
+  EcsTaskExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub '${ProjectName}-${EnvironmentName}-${TaskDefinitionName}-Role'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+        - 'arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-${TaskDefinitionName}-Role'
+  ECSTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Essential: true
+          Image: !Ref ApplicationImage
+          Memory: !Ref ApplicationImageMemory
+          Cpu: !Ref ApplicationImageCPU
+          Name: !Ref ApplicationContainerName
+          PortMappings:
+            - ContainerPort: !Ref ApplicationContainerPort
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub '/ecs/${TaskDefinitionName}'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: ecs
+      Family: !Sub '${ProjectName}-${EnvironmentName}-ECS-${TaskDefinitionName}'
+      TaskRoleArn: !Ref EcsTaskExecutionRole
+      ExecutionRoleArn: !Ref EcsTaskExecutionRole
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - EC2
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-ECS-${TaskDefinitionName}'
+        - Key: ApplicationContainerName
+          Value: !Ref ApplicationContainerName
