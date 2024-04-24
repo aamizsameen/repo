@@ -1,0 +1,37 @@
+template-file-path: ''
+parameters:
+  ClusterArn: arn:aws:ecs:ap-south-1:296851894446:cluster/TickBig-Staging-ECS
+  CPUScaleOutCooldownPeriod: '60'
+  CloudWatchLogsRetentionDays: '30'
+  CPUScaleInCooldownPeriod: '60'
+  ProjectName: TickBig
+  TargetGroupPort: '5000'
+  VPC: vpc-0fc1d37f9dfb3538d
+  MaxCount: '4'
+  CPUAutoScalingTargetValue: '70'
+  HealthCheckTimeoutSeconds: '5'
+  MinimumHealthyPercent: '100'
+  HttpCode: '200'
+  ContainerName: tickbig-node-app
+  HealthyThresholdCount: '2'
+  ContainerPort: '5000'
+  ClusterName: TickBig-Staging-ECS
+  Path: /
+  ListenerPort: '80'
+  HealthCheckIntervalSeconds: '60'
+  HealthCheckGracePeriodSeconds: '60'
+  AdditionalTagsKey: Project
+  EnvironmentName: Staging
+  LoadBalancer: >-
+    arn:aws:elasticloadbalancing:ap-south-1:296851894446:loadbalancer/app/TickBig-Staging-LB/faa5ba02a623b1be
+  DesiredCount: '1'
+  SecurityGroup: sg-00f1cff9206dd4a25
+  Subnets: subnet-027b3467f502200f7,subnet-01a54d90116cb6b9a,subnet-058d1351d905c3956
+  TaskDefinition: >-
+    arn:aws:ecs:ap-south-1:296851894446:task-definition/TickBig-Staging-ECS-tickbig-node-app:1
+  ECSServiceRole: arn:aws:iam::296851894446:role/TickBig-Staging-ECSServiceAutoScalingRole
+  ServiceName: Node-App
+  CapacityProvider: TickBig-Staging-CP
+  AdditionalTagsValue: TickBig-Staging-ECS-Service
+  MaximumPercent: '200'
+tags: {}
