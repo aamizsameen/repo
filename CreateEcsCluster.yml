@@ -1,0 +1,1404 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description:
+  This template deploys an ECS cluster to the provided VPC and subnets
+  using an Auto Scaling Group.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: All Parameters Specific To Environment & Naming Conventions.
+        Parameters:
+          - EnvironmentName
+          - ProjectName
+
+      - Label:
+          default: All Parameters Specific To Networking.
+        Parameters:
+          - VPC
+          - EC2Subnets
+          - LoadBalancerSubnets
+
+      - Label:
+          default: All Parameters Specific To Security Groups.
+        Parameters:
+          - LBFromPort
+          - LBToPort
+          - CIDRAllowed
+          - ELBDeletionProtection
+
+      - Label:
+          default: All Parameters Related To ECS Cluster.
+        Parameters:
+          - ClusterSize
+          - ContainerInsights
+          - ECSAMI
+          
+
+      - Label:
+          default: All Parameters Related To Elastic Container Service - Autoscaling.
+        Parameters:
+          - InstanceType
+          - InstanceKeyPair
+          - MinSize
+          - MaxSize
+
+      - Label:
+          default: All Parameters related to updating ECS Optimized AMI
+        Parameters:
+          - MinInstancesInService
+          - MaxBatchSize
+
+      - Label:
+          default: All Parameters Related to Logging and Monitoring.
+        Parameters:
+          - CWLogRetentionDays
+          - LBLogsRetentionDays
+          - CloudWatchAgentDockerImage
+
+      - Label:
+          default: All Parameters Related to Tagging.
+        Parameters:
+          - AdditionalTagsKey
+          - AdditionalTagsValue
+
+    ParameterLabels:
+      EnvironmentName:
+        default: Please give a name to your Environment. (Like uat, dev, production, staging, etc.)
+      ProjectName:
+        default: Please Give a Name to your Project. 
+      VPC:
+        default: Please Select the VPC ID from the list of existing VPCs in this region. It is a virtual private Network where all your resources will reside.
+      EC2Subnets:
+        default: The Subnets where your ECS Cluster's EC2 Instance will reside. (Prefer to have it in private subnet)
+      LoadBalancerSubnets:
+        default: The Subnet where your loadbalancer will reside.
+      LBFromPort:
+        default: Please Specify the range of port on which you want your loadbalancer to receive the traffic. (From Value)
+      LBToPort:
+        default: Please Specify the range of port on which you want your loadbalancer to receive the traffic. (To Value)
+      CIDRAllowed:
+        default: Please provide the CIDR Range from which your LoadBalancer will receive the traffic. (eg.0.0.0.0/0 means open to all).
+      ECSAMI:
+        default: Please Specify the Image ID in which your ECS Agent and Service Container will be running. Please check the AMI ID from AWS Documentation. (Not all AMIs are supported by default)
+      CWLogRetentionDays:
+        default: Please Specify the duration for which you want to keep the Container Insight Logs.
+      CloudWatchAgentDockerImage:
+        default: "Please give the Docker Image Name for Cloudwatch Container. You may take the image from here - https://hub.docker.com/r/amazon/cloudwatch-agent/tags"
+      LBLogsRetentionDays:
+        default: Please Specify the duration for which you would like to Store the Application LoadBalancer Balancer Access Logs in S3 Bucket.
+
+      ClusterSize:
+        default: Cluster Size.
+      ContainerInsights:
+        default: Container Insights.
+      ECSAMI:
+        default: ECS AMI.
+      InstanceType:
+        default: Instance Type.
+      InstanceKeyPair: 
+        default: Instance KeyPair
+      MinSize:
+        default: Minimum Size.
+      MaxSize: 
+        default: Maximum Size.
+      MinInstancesInService:
+        default: Minimum Instances In Service.
+      MaxBatchSize: 
+        default: Maximum Batch Size.
+      CWLogRetentionDays:
+        default: Cloud Watch Logs to be Retentined in days.
+      CloudWatchAgentDockerImage:
+        default: Cloud Watch Agent Docker Image.
+      LBLogsRetentionDays:
+        default: Load Balancer Logs to be Retentined in Days.
+      AdditionalTagsKey: 
+        default: Additional tags key.
+      AdditionalTagsValue:
+        default: Additional tags value.
+
+Parameters:
+  EnvironmentName:
+    Description: Select the environment.
+    Type: String
+    AllowedValues:
+      - Dev
+      - Uat
+      - Prod
+      - Staging
+
+  ContainerInsights:
+    Type: String
+    Description: Do you need to enable or disable containerInsights
+    AllowedValues:
+      - enabled
+      - disabled
+
+
+  ProjectName:
+    Description: The Name of your Project for which the template is going to be deployed.
+    Type: String
+    Default: PROJECT1
+
+  InstanceType:
+    Description: Which instance type should we use to build the ECS cluster?
+    Type: String
+    Default: t3a.medium
+    AllowedValues:
+      - a1.2xlarge
+      - a1.4xlarge
+      - a1.large
+      - a1.medium
+      - a1.metal
+      - a1.xlarge
+      - c1.medium
+      - c1.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - c3.large
+      - c3.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - c4.large
+      - c4.xlarge
+      - c5.12xlarge
+      - c5.18xlarge
+      - c5.24xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5.large
+      - c5.metal
+      - c5.xlarge
+      - c5a.12xlarge
+      - c5a.16xlarge
+      - c5a.24xlarge
+      - c5a.2xlarge
+      - c5a.4xlarge
+      - c5a.8xlarge
+      - c5a.large
+      - c5a.xlarge
+      - c5ad.12xlarge
+      - c5ad.16xlarge
+      - c5ad.24xlarge
+      - c5ad.2xlarge
+      - c5ad.4xlarge
+      - c5ad.8xlarge
+      - c5ad.large
+      - c5ad.xlarge
+      - c5d.12xlarge
+      - c5d.18xlarge
+      - c5d.24xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5d.9xlarge
+      - c5d.large
+      - c5d.metal
+      - c5d.xlarge
+      - c5n.18xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
+      - c5n.9xlarge
+      - c5n.large
+      - c5n.metal
+      - c5n.xlarge
+      - c6g.12xlarge
+      - c6g.16xlarge
+      - c6g.2xlarge
+      - c6g.4xlarge
+      - c6g.8xlarge
+      - c6g.large
+      - c6g.medium
+      - c6g.metal
+      - c6g.xlarge
+      - c6gd.12xlarge
+      - c6gd.16xlarge
+      - c6gd.2xlarge
+      - c6gd.4xlarge
+      - c6gd.8xlarge
+      - c6gd.large
+      - c6gd.medium
+      - c6gd.metal
+      - c6gd.xlarge
+      - c6gn.12xlarge
+      - c6gn.16xlarge
+      - c6gn.2xlarge
+      - c6gn.4xlarge
+      - c6gn.8xlarge
+      - c6gn.large
+      - c6gn.medium
+      - c6gn.xlarge
+      - c6i.12xlarge
+      - c6i.16xlarge
+      - c6i.24xlarge
+      - c6i.2xlarge
+      - c6i.32xlarge
+      - c6i.4xlarge
+      - c6i.8xlarge
+      - c6i.large
+      - c6i.metal
+      - c6i.xlarge
+      - cc1.4xlarge
+      - cc2.8xlarge
+      - cg1.4xlarge
+      - cr1.8xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - d2.xlarge
+      - d3.2xlarge
+      - d3.4xlarge
+      - d3.8xlarge
+      - d3.xlarge
+      - d3en.12xlarge
+      - d3en.2xlarge
+      - d3en.4xlarge
+      - d3en.6xlarge
+      - d3en.8xlarge
+      - d3en.xlarge
+      - dl1.24xlarge
+      - f1.16xlarge
+      - f1.2xlarge
+      - f1.4xlarge
+      - g2.2xlarge
+      - g2.8xlarge
+      - g3.16xlarge
+      - g3.4xlarge
+      - g3.8xlarge
+      - g3s.xlarge
+      - g4ad.16xlarge
+      - g4ad.2xlarge
+      - g4ad.4xlarge
+      - g4ad.8xlarge
+      - g4ad.xlarge
+      - g4dn.12xlarge
+      - g4dn.16xlarge
+      - g4dn.2xlarge
+      - g4dn.4xlarge
+      - g4dn.8xlarge
+      - g4dn.metal
+      - g4dn.xlarge
+      - g5.12xlarge
+      - g5.16xlarge
+      - g5.24xlarge
+      - g5.2xlarge
+      - g5.48xlarge
+      - g5.4xlarge
+      - g5.8xlarge
+      - g5.xlarge
+      - g5g.16xlarge
+      - g5g.2xlarge
+      - g5g.4xlarge
+      - g5g.8xlarge
+      - g5g.metal
+      - g5g.xlarge
+      - h1.16xlarge
+      - h1.2xlarge
+      - h1.4xlarge
+      - h1.8xlarge
+      - hi1.4xlarge
+      - hpc6a.48xlarge
+      - hs1.8xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+      - i2.xlarge
+      - i3.16xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.large
+      - i3.metal
+      - i3.xlarge
+      - i3en.12xlarge
+      - i3en.24xlarge
+      - i3en.2xlarge
+      - i3en.3xlarge
+      - i3en.6xlarge
+      - i3en.large
+      - i3en.metal
+      - i3en.xlarge
+      - i4i.16xlarge
+      - i4i.2xlarge
+      - i4i.32xlarge
+      - i4i.4xlarge
+      - i4i.8xlarge
+      - i4i.large
+      - i4i.xlarge
+      - im4gn.16xlarge
+      - im4gn.2xlarge
+      - im4gn.4xlarge
+      - im4gn.8xlarge
+      - im4gn.large
+      - im4gn.xlarge
+      - inf1.24xlarge
+      - inf1.2xlarge
+      - inf1.6xlarge
+      - inf1.xlarge
+      - is4gen.2xlarge
+      - is4gen.4xlarge
+      - is4gen.8xlarge
+      - is4gen.large
+      - is4gen.medium
+      - is4gen.xlarge
+      - m1.large
+      - m1.medium
+      - m1.small
+      - m1.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - m2.xlarge
+      - m3.2xlarge
+      - m3.large
+      - m3.medium
+      - m3.xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.large
+      - m4.xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.large
+      - m5.metal
+      - m5.xlarge
+      - m5a.12xlarge
+      - m5a.16xlarge
+      - m5a.24xlarge
+      - m5a.2xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.large
+      - m5a.xlarge
+      - m5ad.12xlarge
+      - m5ad.16xlarge
+      - m5ad.24xlarge
+      - m5ad.2xlarge
+      - m5ad.4xlarge
+      - m5ad.8xlarge
+      - m5ad.large
+      - m5ad.xlarge
+      - m5d.12xlarge
+      - m5d.16xlarge
+      - m5d.24xlarge
+      - m5d.2xlarge
+      - m5d.4xlarge
+      - m5d.8xlarge
+      - m5d.large
+      - m5d.metal
+      - m5d.xlarge
+      - m5dn.12xlarge
+      - m5dn.16xlarge
+      - m5dn.24xlarge
+      - m5dn.2xlarge
+      - m5dn.4xlarge
+      - m5dn.8xlarge
+      - m5dn.large
+      - m5dn.metal
+      - m5dn.xlarge
+      - m5n.12xlarge
+      - m5n.16xlarge
+      - m5n.24xlarge
+      - m5n.2xlarge
+      - m5n.4xlarge
+      - m5n.8xlarge
+      - m5n.large
+      - m5n.metal
+      - m5n.xlarge
+      - m5zn.12xlarge
+      - m5zn.2xlarge
+      - m5zn.3xlarge
+      - m5zn.6xlarge
+      - m5zn.large
+      - m5zn.metal
+      - m5zn.xlarge
+      - m6a.12xlarge
+      - m6a.16xlarge
+      - m6a.24xlarge
+      - m6a.2xlarge
+      - m6a.32xlarge
+      - m6a.48xlarge
+      - m6a.4xlarge
+      - m6a.8xlarge
+      - m6a.large
+      - m6a.xlarge
+      - m6g.12xlarge
+      - m6g.16xlarge
+      - m6g.2xlarge
+      - m6g.4xlarge
+      - m6g.8xlarge
+      - m6g.large
+      - m6g.medium
+      - m6g.metal
+      - m6g.xlarge
+      - m6gd.12xlarge
+      - m6gd.16xlarge
+      - m6gd.2xlarge
+      - m6gd.4xlarge
+      - m6gd.8xlarge
+      - m6gd.large
+      - m6gd.medium
+      - m6gd.metal
+      - m6gd.xlarge
+      - m6i.12xlarge
+      - m6i.16xlarge
+      - m6i.24xlarge
+      - m6i.2xlarge
+      - m6i.32xlarge
+      - m6i.4xlarge
+      - m6i.8xlarge
+      - m6i.large
+      - m6i.metal
+      - m6i.xlarge
+      - mac1.metal
+      - p2.16xlarge
+      - p2.8xlarge
+      - p2.xlarge
+      - p3.16xlarge
+      - p3.2xlarge
+      - p3.8xlarge
+      - p3dn.24xlarge
+      - p4d.24xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - r3.large
+      - r3.xlarge
+      - r4.16xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+      - r4.large
+      - r4.xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.large
+      - r5.metal
+      - r5.xlarge
+      - r5a.12xlarge
+      - r5a.16xlarge
+      - r5a.24xlarge
+      - r5a.2xlarge
+      - r5a.4xlarge
+      - r5a.8xlarge
+      - r5a.large
+      - r5a.xlarge
+      - r5ad.12xlarge
+      - r5ad.16xlarge
+      - r5ad.24xlarge
+      - r5ad.2xlarge
+      - r5ad.4xlarge
+      - r5ad.8xlarge
+      - r5ad.large
+      - r5ad.xlarge
+      - r5b.12xlarge
+      - r5b.16xlarge
+      - r5b.24xlarge
+      - r5b.2xlarge
+      - r5b.4xlarge
+      - r5b.8xlarge
+      - r5b.large
+      - r5b.metal
+      - r5b.xlarge
+      - r5d.12xlarge
+      - r5d.16xlarge
+      - r5d.24xlarge
+      - r5d.2xlarge
+      - r5d.4xlarge
+      - r5d.8xlarge
+      - r5d.large
+      - r5d.metal
+      - r5d.xlarge
+      - r5dn.12xlarge
+      - r5dn.16xlarge
+      - r5dn.24xlarge
+      - r5dn.2xlarge
+      - r5dn.4xlarge
+      - r5dn.8xlarge
+      - r5dn.large
+      - r5dn.metal
+      - r5dn.xlarge
+      - r5n.12xlarge
+      - r5n.16xlarge
+      - r5n.24xlarge
+      - r5n.2xlarge
+      - r5n.4xlarge
+      - r5n.8xlarge
+      - r5n.large
+      - r5n.metal
+      - r5n.xlarge
+      - r6g.12xlarge
+      - r6g.16xlarge
+      - r6g.2xlarge
+      - r6g.4xlarge
+      - r6g.8xlarge
+      - r6g.large
+      - r6g.medium
+      - r6g.metal
+      - r6g.xlarge
+      - r6gd.12xlarge
+      - r6gd.16xlarge
+      - r6gd.2xlarge
+      - r6gd.4xlarge
+      - r6gd.8xlarge
+      - r6gd.large
+      - r6gd.medium
+      - r6gd.metal
+      - r6gd.xlarge
+      - r6i.12xlarge
+      - r6i.16xlarge
+      - r6i.24xlarge
+      - r6i.2xlarge
+      - r6i.32xlarge
+      - r6i.4xlarge
+      - r6i.8xlarge
+      - r6i.large
+      - r6i.metal
+      - r6i.xlarge
+      - t1.micro
+      - t2.2xlarge
+      - t2.large
+      - t2.medium
+      - t2.micro
+      - t2.nano
+      - t2.small
+      - t2.xlarge
+      - t3.2xlarge
+      - t3.large
+      - t3.medium
+      - t3.micro
+      - t3.nano
+      - t3.small
+      - t3.xlarge
+      - t3a.2xlarge
+      - t3a.large
+      - t3a.medium
+      - t3a.micro
+      - t3a.nano
+      - t3a.small
+      - t3a.xlarge
+      - t4g.2xlarge
+      - t4g.large
+      - t4g.medium
+      - t4g.micro
+      - t4g.nano
+      - t4g.small
+      - t4g.xlarge
+      - u-12tb1.112xlarge
+      - u-12tb1.metal
+      - u-18tb1.metal
+      - u-24tb1.metal
+      - u-6tb1.112xlarge
+      - u-6tb1.56xlarge
+      - u-6tb1.metal
+      - u-9tb1.112xlarge
+      - u-9tb1.metal
+      - vt1.24xlarge
+      - vt1.3xlarge
+      - vt1.6xlarge
+      - x1.16xlarge
+      - x1.32xlarge
+      - x1e.16xlarge
+      - x1e.2xlarge
+      - x1e.32xlarge
+      - x1e.4xlarge
+      - x1e.8xlarge
+      - x1e.xlarge
+      - x2gd.12xlarge
+      - x2gd.16xlarge
+      - x2gd.2xlarge
+      - x2gd.4xlarge
+      - x2gd.8xlarge
+      - x2gd.large
+      - x2gd.medium
+      - x2gd.metal
+      - x2gd.xlarge
+      - x2iezn.12xlarge
+      - x2iezn.2xlarge
+      - x2iezn.4xlarge
+      - x2iezn.6xlarge
+      - x2iezn.8xlarge
+      - x2iezn.metal
+      - z1d.12xlarge
+      - z1d.2xlarge
+      - z1d.3xlarge
+      - z1d.6xlarge
+      - z1d.large
+      - z1d.metal
+      - z1d.xlarge
+
+  ClusterSize:
+    Description: How many ECS hosts do you want to initially deploy?
+    Type: Number
+    Default: 2
+
+  VPC:
+    Description: Choose which VPC this ECS cluster should be deployed to
+    Type: AWS::EC2::VPC::Id
+
+  EC2Subnets:
+    Description: Choose which subnets this ECS cluster should be deployed to
+    Type: List<AWS::EC2::Subnet::Id>
+
+  LoadBalancerSubnets:
+    Description: Choose the subnets that needs to be associated with the LoadBalancer. Select Public subnet if internet-facing, else private
+    Type: List<AWS::EC2::Subnet::Id>
+
+
+  LBFromPort:
+    Description: Provide the from port number to be allowed by Load Balancer Security Group
+    Type: Number
+    Default: 32700
+
+  LBToPort:
+    Description: Provide the to port number to be allowed by Load Balancer Security Group
+    Type: Number
+    Default: 32700
+
+  CIDRAllowed:
+    Description: Provide the IP CIDR Range that is allowed to hit the LoadBalancer URL.
+    Type: String
+    Default: 0.0.0.0/0
+
+  ELBDeletionProtection:
+    Description: Do you need to enable deletion_protection for this Load Balancer. This Prevents your loadbalancer from accidently being deleted.
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+
+  LBLogsRetentionDays:
+    Description: Provide number of days to retain LBLogs in S3.
+    Type: Number
+    Default: 30
+    AllowedValues:
+      - 1
+      - 3
+      - 5
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+
+  ECSAMI:
+    Description: ECS-Optimized AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+
+  MinInstancesInService:
+    Description: Minimum number of instances that must be in service within the Auto Scaling group
+    Type: Number
+
+  MaxBatchSize:
+    Description: Maximum number of instances that Autoscaling updates
+    Type: Number
+
+  MaxSize:
+    Description: The maximum size of the auto scaling group
+    Type: Number
+
+  MinSize:
+    Description: The Minimum size of the auto scaling group
+    Type: Number
+
+  CloudWatchAgentDockerImage:
+    Description: The Docker Container Image Version Used to Push EC2 Logs to Cloudwatch Loggroup.
+    Type: String
+    Default: "amazon/cloudwatch-agent:1.247348.0b251302"
+
+  InstanceKeyPair: 
+    Description: Select the Key pair that is used to login into the instance.
+    Type: AWS::EC2::KeyPair::KeyName
+
+  CWLogRetentionDays:
+    Description: Provide the number of days CW Agent Logs should be retained
+    Type: Number
+    AllowedValues:
+      - 1
+      - 3
+      - 5
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+      - 180
+      - 360
+
+  AdditionalTagsKey: 
+    Type: String
+    Default: map-migrated
+
+  AdditionalTagsValue: 
+    Type: String
+    Default: mig12345
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      Value: 127311923021
+    us-east-2:
+      Value: 033677994240
+    us-west-1:
+      Value: 027434742980
+    us-west-2:
+      Value: 797873946194
+    af-south-1:
+      Value: 098369216593
+    ca-central-1:
+      Value: 985666609251
+    eu-central-1:
+      Value: 054676820928
+    eu-west-1:
+      Value: 156460612806
+    eu-west-2:
+      Value: 652711504416
+    eu-south-1:
+      Value: 635631232127
+    eu-west-3:
+      Value: 009996457667
+    eu-north-1:
+      Value: 897822967062
+    ap-east-1:
+      Value: 754344448648
+    ap-northeast-1:
+      Value: 582318560864
+    ap-northeast-2:
+      Value: 600734575887
+    ap-northeast-3:
+      Value: 383597477331
+    ap-southeast-1:
+      Value: 114774131450
+    ap-southeast-2:
+      Value: 783225319266
+    ap-south-1:
+      Value: 718504428378
+    me-south-1:
+      Value: 076674570225
+    sa-east-1:
+      Value: 507241528517
+    us-gov-west-1:
+      Value: 048591011584
+    us-gov-east-1:
+      Value: 190560391635
+    cn-north-1:
+      Value: 638102146993
+    cn-northwest-1:
+      Value: 037604701340
+
+Resources:
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${ProjectName}-${EnvironmentName}-ECS
+      ClusterSettings:
+        - Name: containerInsights
+          Value: !Ref ContainerInsights
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-ECS
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+
+  LBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${ProjectName}-${EnvironmentName}-ClusterSG
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-LoadBalancerSG
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+      VpcId: !Ref VPC
+      GroupDescription: ECS LoadBalancer Security Group to Allow External Traffic
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref LBFromPort
+          ToPort: !Ref LBToPort
+          CidrIp: !Ref CIDRAllowed
+
+  ECSHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: LBSecurityGroup
+    Properties:
+      GroupName: !Sub ${ProjectName}-${EnvironmentName}-ECSClusterSG
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-ECSClusterSG
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+      VpcId: !Ref VPC
+      GroupDescription: Access to the ECS hosts and the tasks/containers that run on them
+      SecurityGroupIngress:
+        # Only allow inbound access to ECS from the ELB
+        - SourceSecurityGroupId: !GetAtt LBSecurityGroup.GroupId
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+
+  ECSAutoScalingGroup:
+    DependsOn:
+      - ECSCluster
+      - ECSLaunchTemplate
+      - ECSHostSecurityGroup
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub ${ProjectName}-${EnvironmentName}-ECS-ASG
+      VPCZoneIdentifier: !Ref EC2Subnets
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ECSLaunchTemplate
+        Version: !GetAtt ECSLaunchTemplate.LatestVersionNumber
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref ClusterSize
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+          PropagateAtLaunch: True
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-ECS-ASG
+          PropagateAtLaunch: True
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+          PropagateAtLaunch: True
+
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: !Ref MinInstancesInService
+        MaxBatchSize: !Ref MaxBatchSize
+        PauseTime: PT5M
+
+  ECSLaunchTemplate:
+    Type: "AWS::EC2::LaunchTemplate"
+    DependsOn: ECSHostSecurityGroup
+    Properties:
+      LaunchTemplateName: !Sub ${ProjectName}-${EnvironmentName}-ECS-LT
+      LaunchTemplateData:
+        UserData:
+          "Fn::Base64": !Sub |
+            #!/bin/bash
+            #!/bin/bash
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            sudo yum install -y unzip
+            sudo unzip awscliv2.zip
+            sudo ./aws/install
+            sudo rm -rvf awscliv2.zip
+            sudo yum install -y amazon-cloudwatch-agent 
+            sudo yum install -y aws-cfn-bootstrap hibagent
+            sudo /usr/bin/enable-ec2-spot-hibernation
+            sudo amazon-linux-extras disable docker
+            sudo amazon-linux-extras install -y ecs
+            sudo amazon-linux-extras install -y collectd
+            sudo systemctl enable --now --no-block ecs.service
+            echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config;
+            echo ECS_BACKEND_HOST= >> /etc/ecs/ecs.config;
+            sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:${ECSCloudWatchParameter} -s
+            sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a start
+        IamInstanceProfile:
+          Name: !Ref ECSInstanceProfile
+        Placement:
+          Tenancy: default
+        ImageId: !Ref ECSAMI
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref InstanceKeyPair
+        TagSpecifications: 
+          - ResourceType: 'instance'
+            Tags: 
+              - Key: Environment
+                Value: !Ref EnvironmentName
+              - Key: Name
+                Value: !Sub ${ProjectName}-${EnvironmentName}-ECS-LT
+              - Key: !Ref AdditionalTagsKey
+                Value: !Ref AdditionalTagsValue
+          - ResourceType: 'volume'
+            Tags: 
+              - Key: Environment
+                Value: !Ref EnvironmentName
+              - Key: Name
+                Value: !Sub ${ProjectName}-${EnvironmentName}-ECS-LT
+              - Key: !Ref AdditionalTagsKey
+                Value: !Ref AdditionalTagsValue
+        SecurityGroupIds:
+          - !GetAtt ECSHostSecurityGroup.GroupId
+      TagSpecifications: 
+      - ResourceType: 'launch-template'
+        Tags: 
+          - Key: Environment
+            Value: !Ref EnvironmentName
+          - Key: Name
+            Value: !Sub ${ProjectName}-${EnvironmentName}-ECS-LT
+          - Key: !Ref AdditionalTagsKey
+            Value: !Ref AdditionalTagsValue
+
+  # This IAM Role is attached to all of the ECS hosts. It is based on the default role
+  # published here:
+
+  # http://docs.aws.amazon.com/AmazonECS/latest/developerguide/instance_IAM_role.html
+  #
+  # You can add other IAM policy statements here to allow access from your ECS hosts
+  # to other AWS services. Please note that this role will be used by ALL containers
+  # running on the ECS host.
+
+  ECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: !Sub ${ProjectName}-${EnvironmentName}-ECSRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: "sts:AssumeRole"
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecs:CreateCluster"
+                  - "ecs:CreateService"
+                  - "ecs:DescribeServices"
+                  - "ecs:DeregisterContainerInstance"
+                  - "ecs:DiscoverPollEndpoint"
+                  - "ecs:Poll"
+                  - "ecs:RegisterContainerInstance"
+                  - "ecs:StartTelemetrySession"
+                  - "ecs:Submit*"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:GetAuthorizationToken"
+                  - "ecs:RegisterTaskDefinition"
+                  - "autoscaling:CreateOrUpdateTags"
+                  - "autoscaling:Describe*"
+                  - "autoscaling:DeletePolicy"
+                  - "autoscaling:PutScalingPolicy"
+                  - "autoscaling:SetInstanceProtection"
+                  - "autoscaling:UpdateAutoScalingGroup"
+                  - "autoscaling-plans:CreateScalingPlan"
+                  - "autoscaling-plans:DeleteScalingPlan"
+                  - "autoscaling-plans:DescribeScalingPlans"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                Resource: "arn:aws:ssm:ap-south-1:::parameter/AmazonCloudWatch-*"
+              - Effect: Allow
+                Action:
+                  - "iam:GetRole"
+                  - "iam:CreateRole"
+                  - "iam:DetachRolePolicy"
+                  - "iam:AttachRolePolicy"
+                  - "iam:PassRole"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:GetRandomPassword"
+                  - "secretsmanager:ListSecrets"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:GetResourcePolicy"
+                  - "secretsmanager:GetSecretValue"
+                  - "secretsmanager:DescribeSecret"
+                  - "secretsmanager:ListSecretVersionIds"
+                Resource: "*"
+
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-ECSRole
+
+  ECSInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ${ProjectName}-${EnvironmentName}-ECS-InstanceProfile
+      Path: /
+      Roles:
+        - !Ref ECSRole
+
+  ECSServiceAutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-${EnvironmentName}-ECSServiceAutoScalingRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Action:
+            - "sts:AssumeRole"
+          Effect: Allow
+          Principal:
+            Service:
+              - application-autoscaling.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyName: ecs-service-autoscaling
+          PolicyDocument:
+            Statement:
+              Effect: Allow
+              Action:
+                - application-autoscaling:*
+                - cloudwatch:DescribeAlarms
+                - cloudwatch:PutMetricAlarm
+                - ecs:DescribeServices
+                - ecs:UpdateService
+              Resource: "*"
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-ECSServiceAutoScalingRole
+
+  CapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      Name: !Sub ${ProjectName}-${EnvironmentName}-CP
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !Ref ECSAutoScalingGroup
+        ManagedScaling:
+          MaximumScalingStepSize: 10
+          MinimumScalingStepSize: 1
+          Status: ENABLED
+          TargetCapacity: 100  
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-CP
+
+  CapacityProviderAssociations:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    Properties:
+      CapacityProviders:
+        - !Ref CapacityProvider
+      Cluster: !Ref ECSCluster
+      DefaultCapacityProviderStrategy:
+         #Base: 0
+         #Weight: 1
+        - CapacityProvider: !Ref CapacityProvider
+
+  ECSCloudWatchParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ECS
+      Name: !Sub "${ProjectName}-${EnvironmentName}-ECSAmazonCloudWatchParameters"
+      Type: String
+      Value: !Sub |
+        {
+          "logs": {
+            "force_flush_interval": 5,
+            "logs_collected": {
+              "files": {
+                "collect_list": [
+                  {
+                    "file_path": "/var/log/messages",
+                    "log_group_name": "${ECSCluster}-/var/log/messages",
+                    "log_stream_name": "{instance_id}",
+                    "timestamp_format": "%b %d %H:%M:%S",
+                    "auto_removal": true
+                  },
+                  {
+                    "file_path": "/var/log/dmesg",
+                    "log_group_name": "${ECSCluster}-/var/log/dmesg",
+                    "log_stream_name": "{instance_id}",
+                    "auto_removal": true
+                  },
+                  {
+                    "file_path": "/var/log/docker",
+                    "log_group_name": "${ECSCluster}-/var/log/docker",
+                    "log_stream_name": "{instance_id}",
+                    "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
+                    "auto_removal": true
+                  },
+                  {
+                    "file_path": "/var/log/ecs/ecs-init.log",
+                    "log_group_name": "${ECSCluster}-/var/log/ecs/ecs-init.log",
+                    "log_stream_name": "{instance_id}",
+                    "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
+                    "auto_removal": true
+                  },
+                  {
+                    "file_path": "/var/log/ecs/ecs-agent.log.*",
+                    "log_group_name": "${ECSCluster}-/var/log/ecs/ecs-agent.log",
+                    "log_stream_name": "{instance_id}",
+                    "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
+                    "auto_removal": true
+                  },
+                  {
+                    "file_path": "/var/log/ecs/audit.log",
+                    "log_group_name": "${ECSCluster}-/var/log/ecs/audit.log",
+                    "log_stream_name": "{instance_id}",
+                    "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
+                    "auto_removal": true
+                  }
+                ]
+              }
+            }
+          },
+            "metrics": {
+                "append_dimensions": {
+                        "AutoScalingGroupName": "${!aws:AutoScalingGroupName}",
+                        "ImageId": "${!aws:ImageId}",
+                        "InstanceId": "${!aws:InstanceId}",
+                        "InstanceType": "${!aws:InstanceType}"
+                },
+            "metrics_collected": {
+              "collectd": {
+                "metrics_aggregation_interval": 60
+              },
+              "disk": {
+                "measurement": [
+                  "used_percent"
+                ],
+                "metrics_collection_interval": 60,
+                "resources": [
+                  "/"
+                ]
+              },
+              "mem": {
+                "measurement": [
+                  "mem_used_percent"
+                ],
+                "metrics_collection_interval": 60
+              },
+              "statsd": {
+                "metrics_aggregation_interval": 60,
+                "metrics_collection_interval": 10,
+                "service_address": ":8125"
+              }
+            }
+          }
+        }
+
+  ALBLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      #AccessControl: LogDeliveryWrite
+      OwnershipControls: 
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireLogs
+            ExpirationInDays: !Ref LBLogsRetentionDays
+            Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+
+  ALBLoggingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: ALBLogsBucket
+    Properties:
+      Bucket: !Ref ALBLogsBucket
+      PolicyDocument:
+        Statement:
+          - Sid: "GiveAmazonRootAccessToTheBucket"
+            Action:
+              - "s3:PutObject"
+            Effect: "Allow"
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:aws:s3:::"
+                  - Ref: "ALBLogsBucket"
+                  - "/*"
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ""
+                  - - "arn:aws:iam::"
+                    - !FindInMap [RegionMap, !Ref "AWS::Region", Value]
+                    - ":root"
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: ALBLoggingBucketPolicy
+    Properties:
+      Name: !Sub ${ProjectName}-${EnvironmentName}-LB
+      Subnets: !Ref LoadBalancerSubnets
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref LBSecurityGroup
+      LoadBalancerAttributes:
+        - Key: "access_logs.s3.enabled"
+          Value: True
+        - Key: "access_logs.s3.bucket"
+          Value: !Ref ALBLogsBucket
+        - Key: access_logs.s3.prefix
+          Value: elblogs
+        - Key: deletion_protection.enabled
+          Value: !Ref ELBDeletionProtection
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-LB
+
+    # We define a default target group here, as this is a mandatory Parameters
+    # while creating an Application Load Balancer Listener. This is not used, instead
+    # a target group is created per-service in each service template (../services/*)
+
+  CWEcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-${EnvironmentName}-CWECSTaskExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ecs-tasks.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-CWECSTaskExecutionRole
+  #https://github.com/awsdocs/amazon-cloudwatch-user-guide/blob/master/doc_source/Container-Insights-metrics-ECS.md
+  CloudWatchLogsGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/ecs/ecs-cwagent-daemon-service/${ProjectName}-${EnvironmentName}-LogGroup"
+      RetentionInDays: !Ref CWLogRetentionDays
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub "/ecs/ecs-cwagent-daemon-service/${ProjectName}-${EnvironmentName}-LogGroup"
+
+  CWECSTaskDefinition:
+    Type: "AWS::ECS::TaskDefinition"
+    Properties:
+      Family: !Sub ${ProjectName}-${EnvironmentName}-ecs-cwagent-TD
+      TaskRoleArn: !Ref CWEcsTaskExecutionRole
+      ExecutionRoleArn: !Ref CWEcsTaskExecutionRole
+      NetworkMode: bridge
+      ContainerDefinitions:
+        - Name: cloudwatch-agent
+          Image: !Ref CloudWatchAgentDockerImage
+          MountPoints:
+            - ReadOnly: True
+              ContainerPath: /rootfs/proc
+              SourceVolume: proc
+            - ReadOnly: True
+              ContainerPath: /rootfs/dev
+              SourceVolume: dev
+            - ReadOnly: True
+              ContainerPath: /sys/fs/cgroup
+              SourceVolume: al2_cgroup
+            - ReadOnly: True
+              ContainerPath: /cgroup
+              SourceVolume: al1_cgroup
+            - ReadOnly: True
+              ContainerPath: /rootfs/sys/fs/cgroup
+              SourceVolume: al2_cgroup
+            - ReadOnly: True
+              ContainerPath: /rootfs/cgroup
+              SourceVolume: al1_cgroup
+          Environment:
+            - Name: USE_DEFAULT_CONFIG
+              Value: "True"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-create-group: "True"
+              awslogs-group: !Ref CloudWatchLogsGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: ecs
+      RequiresCompatibilities:
+        - EC2
+      Volumes:
+        - Name: proc
+          Host:
+            SourcePath: /proc
+        - Name: dev
+          Host:
+            SourcePath: /dev
+        - Name: al1_cgroup
+          Host:
+            SourcePath: /cgroup
+        - Name: al2_cgroup
+          Host:
+            SourcePath: /sys/fs/cgroup
+      Cpu: "128"
+      Memory: "64"
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-ecs-cwagent-TD
+  CWECSDaemonService:
+    Type: "AWS::ECS::Service"
+    DependsOn: CWECSTaskDefinition
+    Properties:
+      TaskDefinition: !Ref CWECSTaskDefinition
+      Cluster: !Ref ECSCluster
+      LaunchType: EC2
+      SchedulingStrategy: DAEMON
+      ServiceName: !Sub ${ProjectName}-${EnvironmentName}-cwagent-svc
+      Tags: 
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub ${ProjectName}-${EnvironmentName}-cwagent-svc
+
+## The Output Section for all the exportable resources.
+## The Exported Outputs may be referenced in other Cloudformation Templates (Mainly Designed for Task Definition & Services)
