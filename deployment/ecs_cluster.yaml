@@ -1,0 +1,26 @@
+template-file-path: ''
+parameters:
+  MinInstancesInService: '1'
+  AdditionalTagsKey: map-migrated
+  EnvironmentName: Staging
+  ProjectName: TickBig
+  ClusterSize: '1'
+  VPC: vpc-0fc1d37f9dfb3538d
+  MaxBatchSize: '2'
+  MaxSize: '2'
+  LoadBalancerSubnets: subnet-0ea735927cc69c871,subnet-03fee0d003412cc9f,subnet-00de244feed68a2e6
+  CWLogRetentionDays: '60'
+  MinSize: '1'
+  ContainerInsights: disabled
+  CloudWatchAgentDockerImage: amazon/cloudwatch-agent:1.247348.0b251302
+  CIDRAllowed: 0.0.0.0/0
+  EC2Subnets: subnet-058d1351d905c3956,subnet-01a54d90116cb6b9a,subnet-027b3467f502200f7
+  LBLogsRetentionDays: '30'
+  AdditionalTagsValue: mig12345
+  LBFromPort: '32700'
+  InstanceType: t3a.medium
+  InstanceKeyPair: tickbig-staging-kp
+  ELBDeletionProtection: 'true'
+  ECSAMI: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+  LBToPort: '32700'
+tags: {}
