@@ -539,15 +539,7 @@ Resources:
         - Key: SubnetType
           Value: Private
       VpcId: !Ref Vpc
-  DataSubnetRouteTableAssociation0:
-    Condition: DBTier00
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
-    Properties:
-      RouteTableId: !If 
-        - WantNatGatewayForDataBaseSubnet
-        - !Ref NatRouteTable
-        - !Ref PrivateRouteTable
-      SubnetId: !Ref DataSubnet1
+
   DataSubnetRouteTableAssociation1:
     Condition: DBTier01
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
