@@ -1,4 +1,31 @@
-template-file-path: CreateVPC.yml
+template-file-path: ''
 parameters:
+  DataSubnet3Cidr: 20.0.103.0/24
+  WantDataBaseTier: 'no'
+  PrivateSubnet0Cidr: 20.0.0.0/22
+  PrivateSubnet5Cidr: 20.0.20.0/22
+  ProjectName: TickBig
+  NumberOfAZs: '3'
+  PublicSubnet0Cidr: 20.0.200.0/24
+  DataSubnet2Cidr: 20.0.102.0/24
+  DataSubnet4Cidr: 20.0.104.0/24
+  PrivateSubnet1Cidr: 20.0.4.0/22
+  PublicSubnet2Cidr: 20.0.202.0/24
+  VpcCidr: 20.0.0.0/16
+  WantVpcFlowLogs: disable
+  DataSubnet1Cidr: 20.0.101.0/24
+  DataSubnet5Cidr: 20.0.105.0/24
+  PublicSubnet3Cidr: 20.0.203.0/24
+  PrivateSubnet2Cidr: 20.0.8.0/22
   AvailabilityZones: ap-south-1a,ap-south-1b,ap-south-1c
+  VpcTenancy: default
+  DataSubnet0Cidr: 20.0.100.0/24
+  PublicSubnet4Cidr: 20.0.204.0/24
+  WantNatGatewayForDataBaseSubnets: 'no'
+  PrivateSubnet3Cidr: 20.0.12.0/22
+  PrivateSubnet4Cidr: 20.0.16.0/22
+  Environment: Staging
+  WantNatGatewayForPrivateSubnets: 'yes'
+  PublicSubnet1Cidr: 20.0.201.0/24
+  PublicSubnet5Cidr: 20.0.205.0/24
 tags: {}
