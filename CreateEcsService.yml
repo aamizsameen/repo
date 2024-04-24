@@ -1,0 +1,380 @@
+Description: |
+  This is a template to create a long running ECS service
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterLabels:
+      EnvironmentName:
+        default: Environment Name.
+      ProjectName:
+        default: Please Give a Name to your Project.
+      ServiceName:
+        default: Service Name.
+      ClusterArn:
+        default: Cluster Arn.
+      ClusterName:
+        default: Cluster Name.
+      ContainerName:
+        default: Container Name.
+      ContainerPort:
+        default: Container Port.
+      MaximumPercent:
+        default: Maximum Percentage.
+      MinimumHealthyPercent:
+        default: Minimum Healthy Percentage.
+      HealthCheckGracePeriodSeconds:
+        default: Health Check Grace Period Seconds.
+      ECSServiceRole:
+        default: ECS Service Role.
+      TaskDefinition:
+        default: Task Definition.
+      CloudWatchLogsRetentionDays:
+        default: Cloud Watch Logs Retention.
+      VPC:
+        default: VPC.
+      Subnets:
+        default: Subnets.
+      SecurityGroup:
+        default: Security Group.
+      LoadBalancer:
+        default: Load Balancer.
+      ListenerPort:
+        default: Listener Port.
+      HealthCheckTimeoutSeconds:
+        default: Health Check Timeout in Seconds.
+      TargetGroupPort:
+        default: Target Group Port.
+      HealthyThresholdCount:
+        default: Healthy Threshold Count.
+      HealthCheckIntervalSeconds:
+        default: Health Check Interval in Seconds.
+      HttpCode:
+        default: Http Code.
+      Path:
+        default: Path.
+      CapacityProvider:
+        default: Capacity Provider.
+      MaxCount:
+        default: Maximium Count.
+      DesiredCount:
+        default: Desired Count.
+      CPUAutoScalingTargetValue:
+        default: CPU AutoScaling Target Value.
+      CPUScaleInCooldownPeriod:
+        default: CPU Scale in cooldown period.
+      CPUScaleOutCooldownPeriod:
+        default: CPU Scale out cooldown period.
+      AdditionalTagsKey:
+        default: Additional tags key.
+      AdditionalTagsValue:
+        default: Additional tags value.
+    ParameterGroups:
+      - Label:
+          default: 'All Parameters Specific To Environment, Service and TaskDefinition'
+        Parameters:
+          - EnvironmentName
+          - ProjectName
+          - ServiceName
+          - ClusterArn
+          - ClusterName
+          - ContainerName
+          - ContainerPort
+          - MaximumPercent
+          - MinimumHealthyPercent
+          - HealthCheckGracePeriodSeconds
+          - ECSServiceRole
+          - TaskDefinition
+          - CloudWatchLogsRetentionDays
+      - Label:
+          default: All Parameters Specific to Network Configuration and Security group.
+        Parameters:
+          - VPC
+          - Subnets
+          - SecurityGroup
+      - Label:
+          default: All Parameters Specific to LoadBalancer and TargetGroup.
+        Parameters:
+          - LoadBalancer
+          - ListenerPort
+          - HealthCheckTimeoutSeconds
+          - TargetGroupPort
+          - HealthyThresholdCount
+          - HealthCheckIntervalSeconds
+          - HttpCode
+          - Path
+      - Label:
+          default: All Parameters Specific to CapacityProvider and AutoScaling Policy.
+        Parameters:
+          - CapacityProvider
+          - MaxCount
+          - DesiredCount
+          - CPUAutoScalingTargetValue
+          - CPUScaleInCooldownPeriod
+          - CPUScaleOutCooldownPeriod
+      - Label:
+          default: All Parameters Related to Tagging.
+        Parameters:
+          - AdditionalTagsKey
+          - AdditionalTagsValue
+Parameters:
+  ProjectName:
+    Description: The Name of your Project for which the template is going to be deployed.
+    Type: String
+    Default: PROJECT1
+  VPC:
+    Description: The VPC that the ECS cluster is deployed to
+    Type: 'AWS::EC2::VPC::Id'
+  Subnets:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Description: >-
+      Select the Subnets (Subnet selection should be same as that of cluster
+      subnets)
+  ClusterArn:
+    Description: >-
+      Please provide the ClusterArn of the ECS cluster where this service should
+      run
+    Type: String
+    Default: >-
+      arn:aws:ecs:ap-south-1:793598982904:cluster/IN-APPLICATION-dev-App01-Cluster
+  ClusterName:
+    Description: Please provide the name of the cluster where this service should run
+    Type: String
+    Default: IN-APPLICATION-dev-App01-Cluster
+  ContainerName:
+    Description: >-
+      Please provide the container name of your service(The one defined in your
+      taskdefinition)
+    Type: String
+    Default: apache
+  DesiredCount:
+    Description: How many instances of this task should we run across our cluster?
+    Type: Number
+    Default: 1
+  MaxCount:
+    Description: Maximum number of instances of this task we can run across our cluster
+    Type: Number
+    Default: 1
+  Path:
+    Description: The path to register with the Application Load Balancer
+    Type: String
+    Default: /
+  ContainerPort:
+    Description: The container port of the service.(The one defined in your taskdefinition)
+    Type: Number
+    Default: 80
+  CloudWatchLogsRetentionDays:
+    Description: The number of days to retain the logs
+    Type: Number
+    Default: 1
+  TargetGroupPort:
+    Description: The target group port for the service
+    Type: Number
+    Default: 80
+  ListenerPort:
+    Description: Please provide the port for your LoadBalancer Listener
+    Type: Number
+    Default: 80
+  HealthCheckIntervalSeconds:
+    Description: Provide HealthCheckInterval in Seconds
+    Type: Number
+    Default: 60
+  ServiceName:
+    Description: Provide the name of your service
+    Type: String
+    Default: APPService
+  LoadBalancer:
+    Description: Provide the load balancer ARN
+    Type: String
+    Default: >-
+      arn:aws:elasticloadbalancing:ap-south-1:793598982904:loadbalancer/app/IN-APPLICATION-dev-App01-LB/b6d2a81cf3f09347
+  TaskDefinition:
+    Description: Provide the task definition ARN
+    Type: String
+    Default: 'arn:aws:ecs:ap-south-1:793598982904:task-definition/app:1'
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup::Id'
+    Description: Select the security group for service
+    Default: sg-02c1fc34e3e4daccf
+  MaximumPercent:
+    Type: Number
+    Description: >-
+      represents an upper limit on the number of your service's tasks that are
+      allowed in the RUNNING or PENDING state during a deployment, as a
+      percentage of the desiredCount (rounded down to the nearest integer)
+    Default: 200
+  MinimumHealthyPercent:
+    Type: Number
+    Description: >-
+      minimum healthy percent represents a lower limit on the number of tasks in
+      a service that must remain in the RUNNING state during a deployment, as a
+      percentage of the desired number of tasks (rounded up to the nearest
+      integer)
+    Default: 100
+  HealthCheckGracePeriodSeconds:
+    Type: Number
+    Description: >-
+      The period of time, in seconds, that the Amazon ECS service scheduler
+      ignores unhealthy Elastic Load Balancing target health checks after a task
+      has first started
+    Default: 60
+  EnvironmentName:
+    Description: Select the environment.
+    Type: String
+    AllowedValues:
+      - Dev
+      - Uat
+      - Prod
+      - Staging
+  ECSServiceRole:
+    Description: Provide the ECS ServiceRole ARN having Autoscaling policy attached.
+    Type: String
+    Default: >-
+      arn:aws:iam::793598982904:role/IN-APPLICATION-dev-App01-ECSServiceAutoScalingRole
+  CPUAutoScalingTargetValue:
+    Description: Provide the CPU AutoScalingTarget Value
+    Type: Number
+    Default: 70
+  CPUScaleInCooldownPeriod:
+    Description: Provide the CPU Scale In Cool Down Period in Seconds
+    Type: Number
+    Default: 60
+  CPUScaleOutCooldownPeriod:
+    Description: Provide the CPU Scale Out Cool Down Period in Seconds
+    Type: Number
+    Default: 60
+  HttpCode:
+    Description: Provide the expected HTTP Response code
+    Type: Number
+    Default: 200
+  HealthCheckTimeoutSeconds:
+    Description: Provide the health check time out seconds for target group
+    Type: Number
+    Default: 5
+  HealthyThresholdCount:
+    Description: Provide the healthy threshold count for target group
+    Type: Number
+    Default: 2
+  CapacityProvider:
+    Description: Please provide the name of the CapacityProvider
+    Type: String
+    Default: IN-APPLICATION-dev-App01-CP
+  AdditionalTagsKey:
+    Type: String
+    Default: map-migrated
+  AdditionalTagsValue:
+    Type: String
+    Default: mig12345
+Resources:
+  Service:
+    Type: 'AWS::ECS::Service'
+    DependsOn:
+      - ListenerRule
+    Properties:
+      CapacityProviderStrategy:
+        - CapacityProvider: !Ref CapacityProvider
+          Base: 1
+          Weight: 1
+      ServiceName: !Ref ServiceName
+      Cluster: !Ref ClusterArn
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition: !Ref TaskDefinition
+      LoadBalancers:
+        - ContainerName: !Ref ContainerName
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroup
+      DeploymentConfiguration:
+        MaximumPercent: !Ref MaximumPercent
+        MinimumHealthyPercent: !Ref MinimumHealthyPercent
+        DeploymentCircuitBreaker:
+          Enable: false
+          Rollback: false
+      PlacementStrategies:
+        - Type: spread
+          Field: 'attribute:ecs.availability-zone'
+        - Type: spread
+          Field: instanceId
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref SecurityGroup
+          Subnets: !Ref Subnets
+      HealthCheckGracePeriodSeconds: !Ref HealthCheckGracePeriodSeconds
+      SchedulingStrategy: REPLICA
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-ECS-${ServiceName}'
+  TargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      Name: !Sub '${ProjectName}-${EnvironmentName}-LB-${ServiceName}-TG'
+      VpcId: !Ref VPC
+      Port: !Ref TargetGroupPort
+      Protocol: HTTP
+      Matcher:
+        HttpCode: !Ref HttpCode
+      HealthCheckIntervalSeconds: !Ref HealthCheckIntervalSeconds
+      HealthCheckPath: !Ref Path
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: !Ref HealthCheckTimeoutSeconds
+      HealthyThresholdCount: !Ref HealthyThresholdCount
+      TargetType: ip
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: !Ref AdditionalTagsKey
+          Value: !Ref AdditionalTagsValue
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-LB-${ServiceName}-TG'
+  LoadBalancerListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: !Ref ListenerPort
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+  ListenerRule:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      ListenerArn: !Ref LoadBalancerListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - !Ref Path
+      Actions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+  ServiceScalableTarget:
+    Type: 'AWS::ApplicationAutoScaling::ScalableTarget'
+    Properties:
+      MaxCapacity: !Ref MaxCount
+      MinCapacity: !Ref DesiredCount
+      RoleARN: !Ref ECSServiceRole
+      ResourceId: !Join 
+        - /
+        - - service
+          - !Ref ClusterName
+          - !GetAtt Service.Name
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ServiceNamespace: ecs
+  CPUAutoScalingPolicy:
+    Type: 'AWS::ApplicationAutoScaling::ScalingPolicy'
+    Properties:
+      PolicyName: !Join 
+        - ''
+        - - !Ref ServiceName
+          - CPUAutoScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ServiceScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: !Ref CPUScaleInCooldownPeriod
+        ScaleOutCooldown: !Ref CPUScaleOutCooldownPeriod
+        TargetValue: !Ref CPUAutoScalingTargetValue
