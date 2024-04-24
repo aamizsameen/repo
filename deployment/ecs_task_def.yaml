@@ -1,0 +1,13 @@
+template-file-path: ''
+parameters:
+  ApplicationContainerPort: '5000'
+  AdditionalTagsKey: Project
+  EnvironmentName: Staging
+  ProjectName: TickBig
+  TaskDefinitionName: tickbig-node-app
+  AdditionalTagsValue: TickBig-Staging-Task-Definition
+  ApplicationImage: 296851894446.dkr.ecr.ap-south-1.amazonaws.com/tickbig-node-app-staging:0.0.4
+  ApplicationContainerName: tickbig-node-app
+  ApplicationImageMemory: '1024'
+  ApplicationImageCPU: '512'
+tags: {}
